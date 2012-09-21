@@ -32,14 +32,14 @@ class SmoosherFile(file):
     def __enter__(self, *args, **kwargs):
         fcntl.flock(self, fcntl.LOCK_EX)
         return super(SmoosherFile, self).__enter__(*args, **kwargs)
-    
+
     def __exit__(self, *args, **kwargs):
         if hasattr(self, 'backup'):
             self.restore_backup()
-        
+
         fcntl.flock(self, fcntl.LOCK_UN)
         return super(SmoosherFile, self).__exit__(*args, **kwargs)
-    
+
     def create_backup(self):
         """Backs up this file, by creating a copy with a .backup extension."""
         if not hasattr(self, 'backup'):
@@ -47,12 +47,12 @@ class SmoosherFile(file):
             backup_path = (self.name + '.backup')
             shutil.copy2(self.name, backup_path)
             self.backup = SmoosherFile(backup_path)
-    
+
     def destroy_backup(self):
         """Destroys the backup file."""
         os.remove(self.backup.name)
         del self.backup
-    
+
     def restore_backup(self):
         """Restores the backup file."""
         shutil.copy2(self.backup.name, self.name)
@@ -62,27 +62,27 @@ class Smoosher(object):
     def __init__(self, original_path, *args, **kwargs):
         self.original = SmoosherFile(original_path)
         return super(Smoosher, self).__init__(*args, **kwargs)
-    
+
     def get_smooshed(self):
         """Sends the original file to smoosh.it and returns the resulting data
            as a file-like object (StringIO)."""
-        response = opener.open('http://ws1.adq.ac4.yahoo.com/ysmush.it/ws.php', {
+        response = opener.open('http://ypoweb-01.experf.gq1.yahoo.com/ysmush.it/ws.php', {
             'files': self.original,
         }).read()
         response = simplejson.loads(response)
-        
+
         # If smush.it reported an error, raise it
         if 'error' in response:
             raise SmushItException, response['error']
-        
+
         result = urlparse.urljoin('http://smush.it', response['dest'])
-        
+
         # Download the smushed file and return it in a StringIO
         return StringIO(urllib2.urlopen(result).read())
-    
+
     def smoosh(self):
         """Smooshes the file:
-           
+
            1) Creates a backup of the file (in case anything goes awry).
            2) Sends the file to smoosh.it, and saves the result.
            3) Compares the sizes of both files (the original and the smooshed)
@@ -93,22 +93,22 @@ class Smoosher(object):
         """
         original_size = os.path.getsize(self.original.name)
         bytes_saved = 0
-        
+
         # Man, I love the with statement...
         with self.original:
             try:
                 print 'Smooshing %s...' % self.original.name
                 self.original.create_backup()
-                
+
                 smooshed = self.get_smooshed()
                 replacement = SmoosherFile((self.original.name + '.new'), 'w')
                 replacement.write(smooshed.read())
                 replacement.flush()
                 replacement_size = os.path.getsize(replacement.name)
-                
+
                 if not replacement_size < original_size:
                     raise SmushItException, 'No savings'
-                
+
                 # Store the size reduction
                 bytes_saved = original_size - replacement_size
                 # Calculate how much smaller the smooshed file is
@@ -120,7 +120,7 @@ class Smoosher(object):
                 shutil.move(replacement.name, self.original.name)
                 # Print a success message
                 print '  WIN: Smooshed file %s%% smaller :)' % reduction
-            
+
             except SmushItException, e:
                 if e.message == 'No savings':
                     # Restore backup, destroy replacment, and print fail notice
@@ -130,7 +130,7 @@ class Smoosher(object):
                 else:
                     print '  FAIL: Smooshing error. Backup restored.'
                     raise
-        
+
         return (original_size, bytes_saved)
 
 def recursive_smoosher(roots):
@@ -138,7 +138,7 @@ def recursive_smoosher(roots):
     files_processed = 0
     total_originals = 0
     total_saved = 0
-    
+
     for root in roots:
         if os.path.isdir(root):
             # The root is a directory, so process everything under it
@@ -155,7 +155,7 @@ def recursive_smoosher(roots):
             files_processed += 1
             total_originals += result[0]
             total_saved += result[1]
-    
+
     print '--------------------'
     print 'EPIC WIN: Smooshed %i files, and cut %d%% bulk away (%i bytes)' % (
         files_processed,
@@ -165,14 +165,14 @@ def recursive_smoosher(roots):
 
 def main():
     args = sys.argv[1:]
-    
+
     if not args:
         recursive_smoosher(os.getcwd())
-    
+
     for arg in args:
         # Ensure all passed paths exist before we do anything
         assert os.path.exists(arg), u'%s does not exist' % arg
-    
+
     recursive_smoosher(args)
     sys.exit(0)
 
