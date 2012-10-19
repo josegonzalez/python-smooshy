@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+import os
+import smooshy.smoosher
+import sys
+
+args = sys.argv[1:]
+
+if not args:
+    smooshy.smoosher.recursive_smoosher(os.getcwd())
+
+for arg in args:
+    # Ensure all passed paths exist before we do anything
+    assert os.path.exists(arg), u'%s does not exist' % arg
+
+smooshy.smoosher.recursive_smoosher(args)
+sys.exit(0)

@@ -1,17 +1,15 @@
-from setuptools import setup, find_packages
+from distutils.core import setup
 
 setup(
-    name='Smooshy',
+    name='smooshy',
+    version='1',
+    author='Jose Gonzalez',
+    author_email='support@savant.be',
+    packages=['smooshy'],
+    scripts=['bin/smooshy'],
+    url='https://github.com/josegonzalez/smooshy',
+    license='LICENSE.txt',
     description='Automatic lossless image compression',
-    author='Oliver Beattie',
-    author_email='oliver@obeattie.com',
-    url='http://github.com/obeattie/smooshy-py/',
-    version='0.2',
-    install_requires=['simplejson', ],
-    packages=['smooshy', ],
-    entry_points={
-        'console_scripts': [
-            'smooshy = smooshy.smoosher:main',
-        ]
-    }
+    long_description=open('README.rst').read(),
+    install_requires=['simplejson']
 )

@@ -1,12 +1,13 @@
-#!/usr/bin/env python
+from __future__ import with_statement  # Yes, yes, I know...
+import decimal
+import fcntl
+import os
+import shutil
+import simplejson
+import urllib2
+import urlparse
 
-from __future__ import with_statement # Yes, yes, I know...
-import decimal, fcntl, os, shutil, simplejson, sys, urllib2, urlparse
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from cStringIO import StringIO
 
 import multipart_handler
 
@@ -16,6 +17,7 @@ ACCEPTED_FILE_TYPES = ('jpeg', 'jpg', 'png')
 
 opener = urllib2.build_opener(multipart_handler.MultipartPostHandler)
 
+
 def saving_percent(original_size, replacement_size):
     reduction = float(replacement_size) / float(original_size)
     reduction = reduction * 100
@@ -23,8 +25,10 @@ def saving_percent(original_size, replacement_size):
     reduction = reduction.quantize(decimal.Decimal('0.00'))
     return decimal.Decimal('100') - reduction
 
+
 class SmushItException(Exception):
     pass
+
 
 class SmoosherFile(file):
     """File subclass that provides locking and unlocking when used inside a
@@ -58,6 +62,7 @@ class SmoosherFile(file):
         shutil.copy2(self.backup.name, self.name)
         self.destroy_backup()
 
+
 class Smoosher(object):
     def __init__(self, original_path, *args, **kwargs):
         self.original = SmoosherFile(original_path)
@@ -73,7 +78,7 @@ class Smoosher(object):
 
         # If smush.it reported an error, raise it
         if 'error' in response:
-            raise SmushItException, response['error']
+            raise SmushItException(response['error'])
 
         result = urlparse.urljoin('http://smush.it', response['dest'])
 
@@ -107,7 +112,7 @@ class Smoosher(object):
                 replacement_size = os.path.getsize(replacement.name)
 
                 if not replacement_size < original_size:
-                    raise SmushItException, 'No savings'
+                    raise SmushItException('No savings')
 
                 # Store the size reduction
                 bytes_saved = original_size - replacement_size
@@ -132,6 +137,7 @@ class Smoosher(object):
                     raise
 
         return (original_size, bytes_saved)
+
 
 def recursive_smoosher(roots):
     """Recursively smooshes its way through a directory of files."""
@@ -162,19 +168,3 @@ def recursive_smoosher(roots):
         saving_percent(total_originals, total_saved),
         total_saved
     )
-
-def main():
-    args = sys.argv[1:]
-
-    if not args:
-        recursive_smoosher(os.getcwd())
-
-    for arg in args:
-        # Ensure all passed paths exist before we do anything
-        assert os.path.exists(arg), u'%s does not exist' % arg
-
-    recursive_smoosher(args)
-    sys.exit(0)
-
-if __name__ == '__main__':
-    main()
